@@ -1,30 +1,26 @@
 """
-Este script:
-1. Lee el prompt desde el titulo/cuerpo del issue que lo disparo.
-2. Lee context.md (las reglas fijas del proyecto).
-3. Le pide a Gemini que genere/modifique codigo.
-4. Crea una rama nueva, aplica los cambios y abre un Pull Request.
-
-No toca la rama principal directamente: todo pasa por PR para que
-el usuario revise y apruebe manualmente.
+Version con Groq (API compatible con OpenAI) en vez de Gemini.
+Misma logica: lee el issue, lee context.md, genera codigo, abre un PR.
 """
 
 import os
 import re
 import subprocess
-import google.generativeai as genai
+from openai import OpenAI
 from github import Github
 
 # ---- Configuracion ----
-GEMINI_API_KEY = os.environ["GEMINI_API_KEY"]
+GROQ_API_KEY = os.environ["GROQ_API_KEY"]
 GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
 ISSUE_TITLE = os.environ["ISSUE_TITLE"]
 ISSUE_BODY = os.environ.get("ISSUE_BODY", "") or ""
 ISSUE_NUMBER = os.environ["ISSUE_NUMBER"]
 REPO_NAME = os.environ["REPO"]
 
-genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel("gemini-2.0-flash")
+client = OpenAI(
+    api_key=GROQ_API_KEY,
+    base_url="https://api.groq.com/openai/v1",
+)
 
 # ---- 1. Leer el contexto fijo del proyecto ----
 context = ""
@@ -53,22 +49,25 @@ contenido completo del archivo
 No agregues explicaciones fuera de ese formato.
 """
 
-# ---- 3. Llamar a Gemini ----
-response = model.generate_content(prompt)
-output = response.text
+# ---- 3. Llamar a Groq ----
+completion = client.chat.completions.create(
+    model="llama-3.3-70b-versatile",
+    messages=[{"role": "user", "content": prompt}],
+)
+output = completion.choices[0].message.content
 
 # ---- 4. Parsear la respuesta y escribir los archivos ----
 pattern = r"### FILE: (.+?)\n```(?:\w*\n)?(.*?)```"
 matches = re.findall(pattern, output, re.DOTALL)
 
 if not matches:
-    print("Gemini no devolvio archivos en el formato esperado. Salida cruda:")
+    print("Groq no devolvio archivos en el formato esperado. Salida cruda:")
     print(output)
     exit(1)
 
-branch_name = f"gemini/issue-{ISSUE_NUMBER}"
-subprocess.run(["git", "config", "user.name", "gemini-bot"])
-subprocess.run(["git", "config", "user.email", "gemini-bot@users.noreply.github.com"])
+branch_name = f"groq/issue-{ISSUE_NUMBER}"
+subprocess.run(["git", "config", "user.name", "groq-bot"])
+subprocess.run(["git", "config", "user.email", "groq-bot@users.noreply.github.com"])
 subprocess.run(["git", "checkout", "-b", branch_name])
 
 changed_files = []
@@ -80,14 +79,14 @@ for filepath, content in matches:
     changed_files.append(filepath)
 
 subprocess.run(["git", "add"] + changed_files)
-subprocess.run(["git", "commit", "-m", f"Gemini: {ISSUE_TITLE}"])
+subprocess.run(["git", "commit", "-m", f"Groq: {ISSUE_TITLE}"])
 subprocess.run(["git", "push", "origin", branch_name])
 
 # ---- 5. Abrir el Pull Request ----
 gh = Github(GITHUB_TOKEN)
 repo = gh.get_repo(REPO_NAME)
 pr = repo.create_pull(
-    title=f"Gemini: {ISSUE_TITLE}",
+    title=f"Groq: {ISSUE_TITLE}",
     body=f"Generado automaticamente a partir del issue #{ISSUE_NUMBER}.\n\nArchivos modificados:\n"
     + "\n".join(f"- {f}" for f in changed_files),
     head=branch_name,

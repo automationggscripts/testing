@@ -1,4 +1,4 @@
-name: Gemini Code Assistant
+name: Groq Code Assistant
 
 # Se dispara cada vez que se abre un issue nuevo.
 # El TITULO del issue se usa como prompt.
@@ -24,14 +24,14 @@ jobs:
           python-version: "3.11"
 
       - name: Instalar dependencias
-        run: pip install google-generativeai PyGithub
+        run: pip install openai PyGithub
 
-      - name: Ejecutar el script de Gemini
+      - name: Ejecutar el script de Groq
         env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ISSUE_TITLE: ${{ github.event.issue.title }}
           ISSUE_BODY: ${{ github.event.issue.body }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
           REPO: ${{ github.repository }}
-        run: python scripts/run_gemini.py
+        run: python scripts/run_groq.py
