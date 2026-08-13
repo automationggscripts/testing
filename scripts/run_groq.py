@@ -31,6 +31,7 @@ GOOGLE_ADS_CLIENT_ID = os.environ.get("GOOGLE_ADS_CLIENT_ID")
 GOOGLE_ADS_CLIENT_SECRET = os.environ.get("GOOGLE_ADS_CLIENT_SECRET")
 GOOGLE_ADS_REFRESH_TOKEN = os.environ.get("GOOGLE_ADS_REFRESH_TOKEN")
 GOOGLE_ADS_CUSTOMER_ID = os.environ.get("GOOGLE_ADS_CUSTOMER_ID", "6717076350")  # sin guiones
+GOOGLE_ADS_LOGIN_CUSTOMER_ID = os.environ.get("GOOGLE_ADS_LOGIN_CUSTOMER_ID")  # customer ID del MCC, sin guiones
 
 client = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
 
@@ -57,6 +58,7 @@ def consultar_google_ads():
         "client_id": GOOGLE_ADS_CLIENT_ID,
         "client_secret": GOOGLE_ADS_CLIENT_SECRET,
         "refresh_token": GOOGLE_ADS_REFRESH_TOKEN,
+        "login_customer_id": GOOGLE_ADS_LOGIN_CUSTOMER_ID,
         "use_proto_plus": True,
     }
     ads_client = GoogleAdsClient.load_from_dict(config)
