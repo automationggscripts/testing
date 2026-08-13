@@ -1,7 +1,7 @@
 name: Groq Code Assistant
 
 # Se dispara cada vez que se abre un issue nuevo.
-# El TITULO del issue se usa como prompt.
+# El TITULO y CUERPO del issue se usan como prompt / pedido.
 on:
   issues:
     types: [opened]
@@ -24,9 +24,9 @@ jobs:
           python-version: "3.11"
 
       - name: Instalar dependencias
-        run: pip install openai PyGithub
+        run: pip install openai PyGithub google-ads openpyxl
 
-      - name: Ejecutar el script de Groq
+      - name: Ejecutar el script
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -34,4 +34,8 @@ jobs:
           ISSUE_BODY: ${{ github.event.issue.body }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
           REPO: ${{ github.repository }}
+          GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+          GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+          GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+          GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
         run: python scripts/run_groq.py
