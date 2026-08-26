@@ -11,6 +11,7 @@ Flujo:
 import os
 import re
 import subprocess
+from pathlib import Path
 from openai import OpenAI
 from github import Github
 from google.ads.googleads.client import GoogleAdsClient
@@ -18,19 +19,27 @@ import openpyxl
 from openpyxl.styles import Font
 
 # ---- Configuracion general ----
-GROQ_API_KEY = os.environ["GROQ_API_KEY"]
-GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
-ISSUE_TITLE = os.environ["ISSUE_TITLE"]
+def required_env(name):
+    """Lee una variable requerida y muestra un error accionable si falta."""
+    value = os.environ.get(name)
+    if not value:
+        raise RuntimeError(f"Falta la variable de entorno requerida: {name}")
+    return value
+
+
+GROQ_API_KEY = required_env("GROQ_API_KEY")
+GITHUB_TOKEN = required_env("GITHUB_TOKEN")
+ISSUE_TITLE = required_env("ISSUE_TITLE")
 ISSUE_BODY = os.environ.get("ISSUE_BODY", "") or ""
-ISSUE_NUMBER = os.environ["ISSUE_NUMBER"]
-REPO_NAME = os.environ["REPO"]
+ISSUE_NUMBER = required_env("ISSUE_NUMBER")
+REPO_NAME = required_env("REPO")
 
 # ---- Configuracion Google Ads (solo se usa si el pedido lo requiere) ----
 GOOGLE_ADS_DEVELOPER_TOKEN = os.environ.get("GOOGLE_ADS_DEVELOPER_TOKEN")
 GOOGLE_ADS_CLIENT_ID = os.environ.get("GOOGLE_ADS_CLIENT_ID")
 GOOGLE_ADS_CLIENT_SECRET = os.environ.get("GOOGLE_ADS_CLIENT_SECRET")
 GOOGLE_ADS_REFRESH_TOKEN = os.environ.get("GOOGLE_ADS_REFRESH_TOKEN")
-GOOGLE_ADS_CUSTOMER_ID = os.environ.get("GOOGLE_ADS_CUSTOMER_ID", "6717076350")  # sin guiones
+GOOGLE_ADS_CUSTOMER_ID = os.environ.get("GOOGLE_ADS_CUSTOMER_ID")  # sin guiones
 GOOGLE_ADS_LOGIN_CUSTOMER_ID = os.environ.get("GOOGLE_ADS_LOGIN_CUSTOMER_ID")  # customer ID del MCC, sin guiones
 
 client = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
@@ -43,9 +52,38 @@ es_pedido_de_ads = any(palabra in texto_pedido for palabra in palabras_clave_ads
 changed_files = []
 branch_name = f"auto/issue-{ISSUE_NUMBER}"
 
-subprocess.run(["git", "config", "user.name", "auto-bot"])
-subprocess.run(["git", "config", "user.email", "auto-bot@users.noreply.github.com"])
-subprocess.run(["git", "checkout", "-b", branch_name])
+
+def run_git(*args):
+    """Ejecuta Git y detiene el flujo si una operación esencial falla."""
+    subprocess.run(["git", *args], check=True)
+
+
+def validar_ruta_generada(filepath):
+    """Evita que una respuesta del modelo escriba configuraciones o salga del repo."""
+    path = Path(filepath)
+    allowed_extensions = {".py", ".md", ".txt", ".json", ".csv", ".yml", ".yaml"}
+    forbidden_roots = {".github", ".git", "scripts"}
+    if not path.parts or path.is_absolute() or ".." in path.parts or path.parts[0] in forbidden_roots:
+        raise ValueError(f"Ruta no permitida: {filepath}")
+    if path.suffix.lower() not in allowed_extensions:
+        raise ValueError(f"Tipo de archivo no permitido: {filepath}")
+    return path
+
+
+def validar_archivos_generados(files):
+    """Comprueba la sintaxis Python antes de que un cambio llegue al pull request."""
+    for filename in files:
+        path = Path(filename)
+        if path.suffix.lower() == ".py":
+            try:
+                compile(path.read_text(encoding="utf-8"), str(path), "exec")
+            except SyntaxError as error:
+                raise ValueError(f"Python inválido en {path}: {error}") from error
+
+
+run_git("config", "user.name", "auto-bot")
+run_git("config", "user.email", "auto-bot@users.noreply.github.com")
+run_git("checkout", "-b", branch_name)
 
 
 def consultar_google_ads():
@@ -53,6 +91,16 @@ def consultar_google_ads():
     Se conecta a Google Ads (solo lectura) y trae metricas basicas de
     campanias de los ultimos 30 dias: nombre, impresiones, clics, costo.
     """
+    missing = [name for name, value in {
+        "GOOGLE_ADS_DEVELOPER_TOKEN": GOOGLE_ADS_DEVELOPER_TOKEN,
+        "GOOGLE_ADS_CLIENT_ID": GOOGLE_ADS_CLIENT_ID,
+        "GOOGLE_ADS_CLIENT_SECRET": GOOGLE_ADS_CLIENT_SECRET,
+        "GOOGLE_ADS_REFRESH_TOKEN": GOOGLE_ADS_REFRESH_TOKEN,
+        "GOOGLE_ADS_CUSTOMER_ID": GOOGLE_ADS_CUSTOMER_ID,
+    }.items() if not value]
+    if missing:
+        raise RuntimeError("Faltan secretos de Google Ads: " + ", ".join(missing))
+
     config = {
         "developer_token": GOOGLE_ADS_DEVELOPER_TOKEN,
         "client_id": GOOGLE_ADS_CLIENT_ID,
@@ -163,11 +211,11 @@ No agregues explicaciones fuera de ese formato.
         exit(1)
 
     for filepath, content in matches:
-        filepath = filepath.strip()
-        os.makedirs(os.path.dirname(filepath) or ".", exist_ok=True)
-        with open(filepath, "w", encoding="utf-8") as f:
+        filepath = validar_ruta_generada(filepath.strip())
+        filepath.parent.mkdir(parents=True, exist_ok=True)
+        with filepath.open("w", encoding="utf-8") as f:
             f.write(content.strip() + "\n")
-        changed_files.append(filepath)
+        changed_files.append(str(filepath))
 
     titulo_pr = f"Groq: {ISSUE_TITLE}"
     cuerpo_pr = (
@@ -176,9 +224,11 @@ No agregues explicaciones fuera de ese formato.
     )
 
 # ---- Commit, push y Pull Request (comun a los dos casos) ----
-subprocess.run(["git", "add"] + changed_files)
-subprocess.run(["git", "commit", "-m", titulo_pr])
-subprocess.run(["git", "push", "origin", branch_name])
+validar_archivos_generados(changed_files)
+run_git("add", "--", *changed_files)
+run_git("diff", "--cached", "--check")
+run_git("commit", "-m", titulo_pr)
+run_git("push", "origin", branch_name)
 
 gh = Github(GITHUB_TOKEN)
 repo = gh.get_repo(REPO_NAME)
