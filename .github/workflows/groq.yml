@@ -1,18 +1,23 @@
 name: Groq Code Assistant
 
-# Se dispara cada vez que se abre un issue nuevo.
-# El TITULO y CUERPO del issue se usan como prompt / pedido.
+# Un mantenedor debe agregar la etiqueta "auto-generate" para autorizar el flujo.
+# Abrir un issue por sí solo no expone credenciales a la automatización.
 on:
   issues:
-    types: [opened]
+    types: [labeled]
 
 permissions:
   contents: write
   pull-requests: write
   issues: write
 
+concurrency:
+  group: groq-issue-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
 jobs:
   generate-code:
+    if: github.event.label.name == 'auto-generate'
     runs-on: ubuntu-latest
     steps:
       - name: Clonar el repositorio
@@ -24,7 +29,7 @@ jobs:
           python-version: "3.11"
 
       - name: Instalar dependencias
-        run: pip install openai PyGithub google-ads openpyxl
+        run: pip install -r requirements.txt
 
       - name: Ejecutar el script
         env:
@@ -38,5 +43,6 @@ jobs:
           GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
           GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
           GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+          GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
           GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
         run: python scripts/run_groq.py
