@@ -35,3 +35,11 @@ python -m compileall scripts
 La automatización solo acepta archivos de código y documentación en rutas
 permitidas. Rechaza cambios a la configuración de GitHub, rutas ocultas y rutas
 fuera del repositorio. Los pull requests requieren revisión humana.
+
+## Mantenimiento
+
+Dependabot propone semanalmente actualizaciones para las dependencias de Python y
+las acciones de GitHub. Configurá en GitHub una regla de protección para `main`
+que exija pull requests y una aprobación antes de fusionar cambios; la gestión de
+permisos para aplicar las etiquetas de autorización también se realiza desde la
+configuración de colaboradores del repositorio.

@@ -47,3 +47,15 @@ jobs:
           GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
           GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
         run: python scripts/run_groq.py
+
+      - name: Informar un fallo en el issue
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: "⚠️ La automatización no pudo completar este pedido. Un mantenedor puede revisar los logs de GitHub Actions y volver a aplicar la etiqueta correspondiente cuando se resuelva el problema.",
+            });
