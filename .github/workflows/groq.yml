@@ -1,6 +1,6 @@
 name: Groq Code Assistant
 
-# Un mantenedor debe agregar la etiqueta "auto-generate" para autorizar el flujo.
+# Un mantenedor debe agregar una etiqueta de autorización para ejecutar el flujo.
 # Abrir un issue por sí solo no expone credenciales a la automatización.
 on:
   issues:
@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   generate-code:
-    if: github.event.label.name == 'auto-generate'
+    if: github.event.label.name == 'auto-generate' || github.event.label.name == 'google-ads-report'
     runs-on: ubuntu-latest
     steps:
       - name: Clonar el repositorio
@@ -39,6 +39,7 @@ jobs:
           ISSUE_BODY: ${{ github.event.issue.body }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
           REPO: ${{ github.repository }}
+          REQUEST_MODE: ${{ github.event.label.name == 'google-ads-report' && 'google_ads_report' || 'code' }}
           GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
           GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
           GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}

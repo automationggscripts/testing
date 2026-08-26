@@ -7,11 +7,14 @@ Google Ads producen un archivo Excel de solo lectura con métricas de campañas.
 ## Uso
 
 1. Abrí un issue con una descripción clara del resultado esperado.
-2. Un mantenedor revisa el pedido y agrega la etiqueta `auto-generate`.
+2. Un mantenedor revisa el pedido y agrega `auto-generate` para código, o
+   `google-ads-report` para un reporte de Google Ads.
 3. El flujo crea una rama `auto/issue-<número>` y abre un pull request.
 4. Revisá el PR, sus pruebas y el contenido generado antes de fusionarlo.
 
-Abrir un issue por sí solo no ejecuta código ni expone secretos.
+Abrir un issue por sí solo no ejecuta código ni expone secretos. Los reportes de
+Google Ads solo se ejecutan con la etiqueta específica; las palabras del issue no
+pueden activarlos.
 
 ## Configuración
 
