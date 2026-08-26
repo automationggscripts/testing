@@ -11,12 +11,12 @@ Flujo:
 import os
 import re
 import subprocess
-from pathlib import Path
 from openai import OpenAI
 from github import Github
 from google.ads.googleads.client import GoogleAdsClient
 import openpyxl
 from openpyxl.styles import Font
+from safety import validate_generated_path, validate_python_files
 
 # ---- Configuracion general ----
 def required_env(name):
@@ -45,9 +45,7 @@ GOOGLE_ADS_LOGIN_CUSTOMER_ID = os.environ.get("GOOGLE_ADS_LOGIN_CUSTOMER_ID")  #
 client = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
 
 # ---- Detectar si el pedido es sobre Google Ads ----
-texto_pedido = f"{ISSUE_TITLE} {ISSUE_BODY}".lower()
-palabras_clave_ads = ["google ads", "campaña", "campanias", "campañas", "ads", "publicidad", "anuncios"]
-es_pedido_de_ads = any(palabra in texto_pedido for palabra in palabras_clave_ads)
+es_pedido_de_ads = os.environ.get("REQUEST_MODE") == "google_ads_report"
 
 changed_files = []
 branch_name = f"auto/issue-{ISSUE_NUMBER}"
@@ -56,29 +54,6 @@ branch_name = f"auto/issue-{ISSUE_NUMBER}"
 def run_git(*args):
     """Ejecuta Git y detiene el flujo si una operación esencial falla."""
     subprocess.run(["git", *args], check=True)
-
-
-def validar_ruta_generada(filepath):
-    """Evita que una respuesta del modelo escriba configuraciones o salga del repo."""
-    path = Path(filepath)
-    allowed_extensions = {".py", ".md", ".txt", ".json", ".csv", ".yml", ".yaml"}
-    forbidden_roots = {".github", ".git", "scripts"}
-    if not path.parts or path.is_absolute() or ".." in path.parts or path.parts[0] in forbidden_roots:
-        raise ValueError(f"Ruta no permitida: {filepath}")
-    if path.suffix.lower() not in allowed_extensions:
-        raise ValueError(f"Tipo de archivo no permitido: {filepath}")
-    return path
-
-
-def validar_archivos_generados(files):
-    """Comprueba la sintaxis Python antes de que un cambio llegue al pull request."""
-    for filename in files:
-        path = Path(filename)
-        if path.suffix.lower() == ".py":
-            try:
-                compile(path.read_text(encoding="utf-8"), str(path), "exec")
-            except SyntaxError as error:
-                raise ValueError(f"Python inválido en {path}: {error}") from error
 
 
 run_git("config", "user.name", "auto-bot")
@@ -211,7 +186,7 @@ No agregues explicaciones fuera de ese formato.
         exit(1)
 
     for filepath, content in matches:
-        filepath = validar_ruta_generada(filepath.strip())
+        filepath = validate_generated_path(filepath.strip())
         filepath.parent.mkdir(parents=True, exist_ok=True)
         with filepath.open("w", encoding="utf-8") as f:
             f.write(content.strip() + "\n")
@@ -224,7 +199,7 @@ No agregues explicaciones fuera de ese formato.
     )
 
 # ---- Commit, push y Pull Request (comun a los dos casos) ----
-validar_archivos_generados(changed_files)
+validate_python_files(changed_files)
 run_git("add", "--", *changed_files)
 run_git("diff", "--cached", "--check")
 run_git("commit", "-m", titulo_pr)
