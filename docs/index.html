@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>testing — automatización de reportes internos</title>
+<style>
+  :root {
+    --paper: #FAF8F3;
+    --ink: #22201B;
+    --ink-soft: #565248;
+    --line: #DAD5C7;
+    --accent: #3D6B5C;
+    --accent-soft: #E7EEEA;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    line-height: 1.55;
+  }
+  .wrap {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 4.5rem 1.5rem 6rem;
+  }
+  header {
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 2.5rem;
+    margin-bottom: 2.5rem;
+  }
+  .kicker {
+    font-size: 0.85rem;
+    color: var(--accent);
+    font-weight: 600;
+    margin: 0 0 0.75rem;
+  }
+  h1 {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 2.3rem;
+    line-height: 1.15;
+    margin: 0 0 1rem;
+    letter-spacing: -0.01em;
+  }
+  .lede {
+    font-size: 1.1rem;
+    color: var(--ink-soft);
+    margin: 0;
+    max-width: 60ch;
+  }
+  h2 {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.35rem;
+    margin: 2.75rem 0 0.9rem;
+  }
+  p { margin: 0 0 1rem; max-width: 66ch; }
+  .meta-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0 0;
+    font-size: 0.95rem;
+  }
+  .meta-table td {
+    padding: 0.6rem 0;
+    border-top: 1px solid var(--line);
+    vertical-align: top;
+  }
+  .meta-table td:first-child {
+    color: var(--ink-soft);
+    width: 11rem;
+    padding-right: 1rem;
+  }
+  .steps {
+    list-style: none;
+    margin: 1rem 0 0;
+    padding: 0;
+    counter-reset: step;
+  }
+  .steps li {
+    counter-increment: step;
+    position: relative;
+    padding: 0 0 1.4rem 2.6rem;
+    border-left: 1px solid var(--line);
+    margin-left: 0.6rem;
+  }
+  .steps li:last-child { border-left: 1px solid transparent; padding-bottom: 0; }
+  .steps li::before {
+    content: counter(step);
+    position: absolute;
+    left: -0.85rem;
+    top: -0.1rem;
+    width: 1.5rem;
+    height: 1.5rem;
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-radius: 50%;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .steps strong { display: block; margin-bottom: 0.15rem; }
+  .steps span { color: var(--ink-soft); font-size: 0.95rem; }
+  .scope-box {
+    background: var(--accent-soft);
+    border-radius: 6px;
+    padding: 1.25rem 1.4rem;
+    margin-top: 1rem;
+  }
+  .scope-box p { margin: 0; }
+  .scope-box p + p { margin-top: 0.6rem; }
+  code {
+    background: var(--accent-soft);
+    padding: 0.1rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.9em;
+  }
+  footer {
+    margin-top: 3.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--line);
+    color: var(--ink-soft);
+    font-size: 0.9rem;
+  }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <p class="kicker">Herramienta interna · Uso personal</p>
+    <h1>Automatización de reportes de marketing digital</h1>
+    <p class="lede">
+      Un flujo propio que convierte pedidos simples en reportes y código,
+      usando GitHub como sistema de revisión. No es un producto comercial:
+      es un proyecto personal para automatizar tareas repetitivas de mi
+      propio trabajo.
+    </p>
+  </header>
+
+  <section>
+    <h2>Qué es esto</h2>
+    <p>
+      Este proyecto es un script personal que corre sobre GitHub Actions.
+      Cuando necesito un reporte o una pequeña automatización, abro un
+      pedido en el repositorio; un modelo de lenguaje genera el resultado
+      (código o un archivo de datos) y lo deja listo en una rama nueva para
+      que yo lo revise antes de aceptarlo. Nada se aplica sin mi aprobación
+      manual.
+    </p>
+    <table class="meta-table">
+      <tr><td>Quién lo usa</td><td>Una sola persona: yo. No tiene otros usuarios ni clientes.</td></tr>
+      <tr><td>Para qué</td><td>Automatizar reportes y tareas propias de marketing digital y análisis de datos.</td></tr>
+      <tr><td>Dónde vive</td><td>Un repositorio privado de GitHub, con revisión humana obligatoria en cada cambio.</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>Cómo funciona</h2>
+    <ol class="steps">
+      <li>
+        <strong>Pedido</strong>
+        <span>Abro un issue describiendo qué reporte o script necesito.</span>
+      </li>
+      <li>
+        <strong>Autorización</strong>
+        <span>Aplico manualmente una etiqueta (<code>auto-generate</code> o <code>google-ads-report</code>) para habilitar la ejecución. Nada corre sin esa autorización explícita.</span>
+      </li>
+      <li>
+        <strong>Generación</strong>
+        <span>El flujo consulta la fuente correspondiente en modo de solo lectura y arma el entregable (código o archivo de datos).</span>
+      </li>
+      <li>
+        <strong>Revisión</strong>
+        <span>El resultado se sube a una rama nueva y se abre un pull request. Lo reviso y decido si lo apruebo o lo descarto.</span>
+      </li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Alcance del acceso a Google Ads</h2>
+    <div class="scope-box">
+      <p>
+        El uso de la API de Google Ads dentro de este proyecto está limitado
+        a consultas de solo lectura (método <code>search</code>) sobre mi
+        propia cuenta publicitaria, para extraer métricas de campañas
+        (impresiones, clics, costo) de los últimos 30 días.
+      </p>
+      <p>
+        No se realiza ninguna operación de escritura, modificación o gestión
+        de campañas, presupuestos ni configuraciones. La cuenta usada para
+        autenticar el acceso tiene permiso de solo lectura dentro de Google
+        Ads.
+      </p>
+    </div>
+  </section>
+
+  <footer>
+    Proyecto personal, sin fines comerciales ni de distribución.
+    Código y flujo alojados en
+    <a href="https://github.com/automationggscripts/testing">github.com/automationggscripts/testing</a>.
+  </footer>
+
+</div>
+</body>
+</html>
